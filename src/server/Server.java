@@ -129,6 +129,8 @@ public class Server {
                 }
             }
 
+            close();
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -233,6 +235,18 @@ public class Server {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+    }
+
+    private void close(){
+        try {
+            clientSocket.close();
+            serverSocket.close();
+            input.close();
+            output.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
