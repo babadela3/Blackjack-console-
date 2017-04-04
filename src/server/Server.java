@@ -12,25 +12,18 @@ public class Server {
 
     private ServerSocket serverSocket;
     private Socket clientSocket;
-    private Player dealer;
-    private Player player;
-    private int playerTurn;
-    private int dealerTurn;
-    private Deck deck;
     private ObjectInputStream input;
     private ObjectOutputStream output;
     private final int portNumber = 9999;
 
     public Server(){
-        dealer = new Player("Dealer");
-        deck = new Deck();
+
         try {
             serverSocket = new ServerSocket(portNumber);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        playerTurn = 0;
-        dealerTurn = 0;
+
     }
 
     public void start(){
@@ -42,94 +35,137 @@ public class Server {
             input = new ObjectInputStream(clientSocket.getInputStream());
             output = new ObjectOutputStream(clientSocket.getOutputStream());
 
-
-            player = new Player("Player");
-            deck.shuffle();
-            splitTwoCards();
-
-
-            boolean check = checkBlackjack();
+            String message = null;
+            Player player;
+            Player dealer;
 
 
-            if(!check) {
-                showCards();
-                output.writeObject("HIT or STAND:");
+
+
+            while(true){
+
+                output.writeObject("Start game!\n");
                 output.flush();
-
-                String message = null;
-
-                while (true) {
-
-
-                    try {
-                        message = (String) input.readObject();
-                        if (message.equals("HIT")) {
-                            Card card = deck.drawCard();
-                            player.addCard(card);
-                            if (player.getTotal() <= 21) {
-                                playerTurn++;
-                                output.writeObject("\nPlayer Turn(" + playerTurn + ")\n" + player.toString() + '\n');
-                                output.flush();
-                                output.writeObject("HIT or STAND:");
-                                output.flush();
-                            } else {
-                                playerTurn++;
-                                output.writeObject("\nPlayer Turn(" + playerTurn + ")\n" + player.toString());
-                                output.flush();
-                                output.writeObject("\nPlayer BUSTS!");
-                                output.flush();
-                                output.writeObject("Player LOSES!");
-                                output.flush();
-                                break;
-                            }
-
-                        } else {
-                            if (message.equals("STAND")) {
-                                break;
-                            } else {
-                                output.writeObject("Try again!");
-                                output.flush();
-                                output.writeObject("HIT or STAND:");
-                                output.flush();
-                            }
-                        }
+                int playerTurn = 0;
+                int dealerTurn = 0;
+                player = new Player("Player");
+                dealer = new Player("Dealer");
+                Deck deck = new Deck();
+                deck.shuffle();
+                splitTwoCards(player, dealer, deck);
 
 
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (message.equals("STAND")) {
+                boolean check = checkBlackjack(player, dealer);
+
+
+                if(!check) {
+                    showCards(player, dealer);
+                    output.writeObject("HIT or STAND:");
+                    output.flush();
+
+
+
                     while (true) {
-                        dealerTurn++;
-                        output.writeObject("\nDealer Turn(" + dealerTurn + ")\n" + dealer.toString());
-                        output.flush();
-                        if (dealer.getTotal() < 17) {
-                            output.writeObject("Dealer draws another card.");
-                            output.flush();
-                            dealer.addCard(deck.drawCard());
-                        } else {
-                            if (dealer.getTotal() > 21) {
-                                output.writeObject("\nDealer BUSTS!");
-                                output.flush();
-                                output.writeObject("Player WINS!");
-                                output.flush();
-                                break;
+
+
+                        try {
+                            message = (String) input.readObject();
+                            if (message.equals("HIT")) {
+                                Card card = deck.drawCard();
+                                player.addCard(card);
+                                if (player.getTotal() <= 21) {
+                                    playerTurn++;
+                                    output.writeObject("\nPlayer Turn(" + playerTurn + ")\n" + player.toString() + '\n');
+                                    output.flush();
+                                    output.writeObject("HIT or STAND:");
+                                    output.flush();
+                                } else {
+                                    playerTurn++;
+                                    output.writeObject("\nPlayer Turn(" + playerTurn + ")\n" + player.toString());
+                                    output.flush();
+                                    output.writeObject("\nPlayer BUSTS!");
+                                    output.flush();
+                                    output.writeObject("Player LOSES!\n");
+                                    output.flush();
+                                    break;
+                                }
+
                             } else {
-                                getResult();
-                                break;
+                                if (message.equals("STAND")) {
+                                    break;
+                                } else {
+                                    output.writeObject("Try again!");
+                                    output.flush();
+                                    output.writeObject("HIT or STAND:");
+                                    output.flush();
+                                }
                             }
+
+
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (message.equals("STAND")) {
+                        while (true) {
+                            dealerTurn++;
+                            output.writeObject("\nDealer Turn(" + dealerTurn + ")\n" + dealer.toString());
+                            output.flush();
+                            if (dealer.getTotal() < 17) {
+                                output.writeObject("Dealer draws another card.");
+                                output.flush();
+                                dealer.addCard(deck.drawCard());
+                            } else {
+                                if (dealer.getTotal() > 21) {
+                                    output.writeObject("\nDealer BUSTS!");
+                                    output.flush();
+                                    output.writeObject("Player WINS!\n");
+                                    output.flush();
+                                    break;
+                                } else {
+                                    getResult(player, dealer);
+                                    break;
+                                }
+
+                            }
+
 
                         }
 
 
                     }
-
-
                 }
+
+
+                try {
+                    output.writeObject("Do you want to play again?\nYES or NO:");
+                    output.flush();
+                    while (true) {
+                        message = (String) input.readObject();
+                        if (message.equals("NO") || message.equals("YES")) {
+                            break;
+                        } else {
+                            output.writeObject("Try again!");
+                            output.flush();
+                            output.writeObject("Do you want to play again?\nYES or NO:");
+                            output.flush();
+                        }
+                    }
+                    if (message.equals("NO")){
+                        output.writeObject("Thank you for playing!");
+                        output.flush();
+                        break;
+                    }
+
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+
             }
 
             close();
+            System.out.print("Player disconnected");
 
 
         } catch (IOException e) {
@@ -138,7 +174,7 @@ public class Server {
     }
 
 
-    private void splitTwoCards(){
+    private void splitTwoCards(Player player, Player dealer,Deck deck){
 
         Card card;
 
@@ -155,20 +191,19 @@ public class Server {
         dealer.addCard(card);
     }
 
-    private void showCards(){
+    private void showCards(Player player, Player dealer){
 
         try {
             output.writeObject("Dealer has: \n" + dealer.getCards().get(0).toString() + "\nHidden\n");
             output.flush();
-            playerTurn++;
-            output.writeObject("Player Turn(" + playerTurn + ")\n" + player.toString() + "\n");
+            output.writeObject("Player Turn(1)\n" + player.toString() + "\n");
             output.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
-    private boolean checkBlackjack(){
+    private boolean checkBlackjack(Player player, Player dealer){
 
             try {   if(player.getTotal() == 21 || dealer.getTotal() == 21){
 
@@ -181,7 +216,7 @@ public class Server {
 
                             output.writeObject("\nPlayer and Dealer have BLACKJACK!");
                             output.flush();
-                            output.writeObject("TIE!");
+                            output.writeObject("TIE!\n");
                             output.flush();
                         }
                         else {
@@ -189,14 +224,14 @@ public class Server {
 
                                 output.writeObject("\nYou have BLACKJACK!");
                                 output.flush();
-                                output.writeObject("Player WINS!");
+                                output.writeObject("Player WINS!\n");
                                 output.flush();
                             }
                             else{
 
                                 output.writeObject("\nDealer has BLACKJACK!");
                                 output.flush();
-                                output.writeObject("Player LOSES!");
+                                output.writeObject("Player LOSES!\n");
                                 output.flush();
                             }
                         }
@@ -212,23 +247,23 @@ public class Server {
     }
 
 
-    private void getResult(){
+    private void getResult(Player player, Player dealer){
 
             try {
                 output.writeObject("\nPlayer Hand values " + player.getTotal() + ", Dealer Hand values " + dealer.getTotal());
                 output.flush();
 
                 if(player.getTotal() > dealer.getTotal()) {
-                    output.writeObject("Player WINS!");
+                    output.writeObject("Player WINS!\n");
                     output.flush();
                 }
                 else{
                     if(player.getTotal() < dealer.getTotal()){
-                        output.writeObject("Player LOSES!");
+                        output.writeObject("Player LOSES!\n");
                         output.flush();
                     }
                     else{
-                        output.writeObject("TIE!");
+                        output.writeObject("TIE!\n");
                         output.flush();
                     }
                 }

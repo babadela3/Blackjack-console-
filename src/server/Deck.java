@@ -16,7 +16,7 @@ public class Deck {
             deck.add(new Card(i,"Hearts"));
             deck.add(new Card(i,"Spades"));
         }
-        shuffle();
+
     }
 
     public void shuffle(){

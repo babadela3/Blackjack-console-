@@ -77,13 +77,19 @@ public class Client {
 
                 message = (String) input.readObject();
                 System.out.println(message );
-                if(message.equals("Player WINS!") || message.equals("Player LOSES!") ||  message.equals("TIE!")){
-                    break;
-                }
                 if(message.equals("HIT or STAND:")){
 
                     String option = scanner.nextLine();
                     sendMessage(option);
+                }
+                if(message.equals("Do you want to play again?\nYES or NO:")){
+
+                    String option = scanner.nextLine();
+                    sendMessage(option);
+                }
+                if(message.equals("Thank you for playing!")){
+
+                    break;
                 }
             } catch (IOException e) {
                 e.printStackTrace();
